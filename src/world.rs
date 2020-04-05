@@ -1,7 +1,7 @@
-use crate::{components, input, resources, util};
+use crate::{components, input, resources};
 
 use log::*;
-use specs::{self, world::Builder};
+use specs::{self};
 use warmy;
 
 use std::path;
@@ -31,22 +31,11 @@ impl World {
         let mut w = specs::World::new();
         components::register_components(&mut w);
 
-        let mut the_world = Self {
+        let the_world = Self {
             resources: store,
             input: input::State::new(),
             specs_world: w,
         };
-
-        // Make a test entity.
-        the_world
-            .specs_world
-            .create_entity()
-            .with(components::Position(util::point2(0.0, 0.0)))
-            .with(components::Motion {
-                velocity: util::vec2(1.0, 1.0),
-                acceleration: util::vec2(0.0, 0.0),
-            })
-            .build();
 
         the_world
     }

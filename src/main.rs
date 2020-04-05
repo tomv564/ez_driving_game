@@ -38,6 +38,7 @@ impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         const DESIRED_FPS: u32 = 60;
         while timer::check_update_time(ctx, DESIRED_FPS) {
+            self.scenes.world.input.update(timer::duration_to_f64(timer::delta(ctx)) as f32);
             self.scenes.update(ctx);
         }
         self.scenes.world.resources.sync(ctx);
@@ -60,6 +61,7 @@ impl event::EventHandler for MainState {
     ) {
         if let Some(ev) = self.input_binding.resolve(keycode) {
             self.scenes.input(ev, true);
+            self.scenes.world.input.update_effect(ev, true);
         }
     }
 
@@ -71,6 +73,7 @@ impl event::EventHandler for MainState {
     ) {
         if let Some(ev) = self.input_binding.resolve(keycode) {
             self.scenes.input(ev, false);
+            self.scenes.world.input.update_effect(ev, false);
         }
     }
 }
