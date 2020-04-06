@@ -20,3 +20,4 @@ fern = {version = "0.5", features = ["colored"] }
 chrono = "0.4"
 specs = "0.14"
 specs-derive = "0.4"
+ncollide2d = "0.20"
