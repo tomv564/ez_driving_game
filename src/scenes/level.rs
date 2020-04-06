@@ -14,6 +14,9 @@ use crate::scenes;
 use crate::systems::*;
 use crate::world::World;
 
+const MIN_VELOCITY: f32 = 0.5;
+const MAX_VELOCITY: f32 = -1.0;
+
 pub struct LevelScene {
     done: bool,
     car: warmy::Res<resources::Image>,
@@ -30,8 +33,13 @@ impl LevelScene {
             .unwrap();
 
         let player_entity = world.specs_world.create_entity()
-            .with(c::Position(util::point2(0.0, 0.0)))
-            .with(c::Motion { velocity: util::vec2(1.0, 1.0), acceleration: util::vec2(0.0, 0.0)})
+            .with(c::Position(util::point2(100.0, 200.0)))
+            .with(c::Motion { velocity: util::vec2(0.0, 0.0), acceleration: util::vec2(0.0, 0.0)})
+            .build();
+
+        // let wall_entity =
+        world.specs_world.create_entity()
+            .with(c::Position(util::point2(200.0, 200.0)))
             .build();
 
         let mut dispatcher = Self::register_systems();
@@ -89,6 +97,9 @@ impl scene::Scene<World, input::Event> for LevelScene {
         }
         let mut motions = gameworld.specs_world.write_storage::<c::Motion>();
         let player_motion = motions.get_mut(self.player_entity).expect("Player w/o motion?");
-        player_motion.velocity += util::vec2(0.0, gameworld.input.get_axis(input::Axis::Vert)* -1.0);
+        let accel = gameworld.input.get_axis(input::Axis::Vert) * -1.0;
+        let y_vel = player_motion.velocity.y + accel;
+        player_motion.velocity = util::vec2(0.0, y_vel.min(MIN_VELOCITY).max(MAX_VELOCITY));
+
     }
 }
