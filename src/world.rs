@@ -10,8 +10,8 @@ use std::path;
 pub struct World {
     pub resources: resources::Store,
     pub input: input::State,
-    pub specs_world: specs::World,
-    pub collide_world: nc::world::CollisionWorld<f32, specs::Entity>
+    pub specs_world: specs::World
+    // pub collide_world: nc::world::CollisionWorld<f32, specs::Entity>
 }
 
 impl World {
@@ -33,13 +33,15 @@ impl World {
         let mut w = specs::World::new();
         components::register_components(&mut w);
 
-        let mut cw = nc::world::CollisionWorld::new(0.2);
+        let cw: nc::world::CollisionWorld<f32, specs::Entity> = nc::world::CollisionWorld::new(0.2);
+
+        w.add_resource(cw);
 
         let the_world = Self {
             resources: store,
             input: input::State::new(),
-            specs_world: w,
-            collide_world: cw
+            specs_world: w
+            // collide_world: cw
         };
 
         the_world
