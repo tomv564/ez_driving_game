@@ -62,6 +62,15 @@ impl event::EventHandler for MainState {
         if let Some(ev) = self.input_binding.resolve(keycode) {
             self.scenes.input(ev, true);
             self.scenes.world.input.update_effect(ev, true);
+        } else {
+            // manual workaround for CMD-Q on Mac not quitting the app
+            // issue tracked in https://github.com/tomaka/winit/issues/41
+            if keycode == event::KeyCode::Q {
+                if cfg!(target_os = "macos") && _keymod.contains(event::KeyMods::LOGO) {
+                    event::quit(_ctx);
+                }
+            }
+
         }
     }
 

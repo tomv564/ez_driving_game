@@ -1,7 +1,7 @@
 use crate::types::*;
 use ggez::graphics;
 use ncollide2d as nc;
-
+use euclid;
 use specs::*;
 use specs_derive::*;
 
@@ -50,6 +50,13 @@ pub struct Player;
 #[storage(VecStorage)]
 pub struct Shot {
     pub damage: u32,
+}
+
+impl Motion {
+    pub fn update(&mut self) {
+        let rotation = euclid::Rotation2D::radians(self.orientation*-1.0);
+        self.velocity = rotation.transform_vector(&self.acceleration);
+    }
 }
 
 pub fn register_components(specs_world: &mut World) {

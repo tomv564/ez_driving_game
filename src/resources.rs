@@ -3,6 +3,7 @@
 use std::path;
 
 use ggez::{self, graphics};
+use ggez_goodies::tilemap::tiled as tiled;
 use log::*;
 use warmy;
 
@@ -67,3 +68,21 @@ impl warmy::Load<ggez::Context, Key> for Image {
         }
     }
 }
+
+// pub struct TiledMap(pub tiled::Map);
+
+// impl warmy::Load<ggez::Context, Key> for TiledMap {
+//     type Error = Error;
+//     fn load(
+//         key: Key,
+//         _storage: &mut Storage,
+//         ctx: &mut ggez::Context,
+//     ) -> Result<Loaded<Self>, Self::Error> {
+//         debug!("Loading tiled map {:?}", key);
+//         match key {
+//             Key::Path(path) => {
+//                 // let f = ctx.fi
+//             }
+//         }
+//     }
+// }

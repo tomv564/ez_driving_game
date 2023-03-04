@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.4" tiledversion="1.4.2" orientation="orthogonal" renderorder="right-down" width="10" height="10" tilewidth="128" tileheight="128" infinite="0" nextlayerid="3" nextobjectid="1">
+ <tileset firstgid="1" source="sand-tiles.tsx"/>
+ <layer id="2" name="Terrain" width="10" height="10">
+  <data encoding="csv">
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5,
+5,5,5,5,5,5,5,5,5,5
+</data>
+ </layer>
+ <layer id="1" name="Course" width="10" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,
+0,16,104,104,104,104,104,104,17,0,
+0,31,37,50,50,50,50,38,33,0,
+0,31,33,0,0,0,0,31,33,0,
+0,31,33,0,0,0,0,31,33,0,
+0,31,33,0,0,0,0,79,81,0,
+0,31,33,0,0,0,0,31,33,0,
+0,31,55,104,104,104,104,56,33,0,
+0,34,50,50,50,50,50,50,35,0,
+0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>

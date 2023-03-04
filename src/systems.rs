@@ -14,23 +14,16 @@ impl<'a> specs::System<'a> for MovementSystem {
     );
 
     fn run(&mut self, (mut pos, motion): Self::SystemData) {
-        // The `.join()` combines multiple components,
-        // so we only access those entities which have
-        // both of them.
         for (pos, motion) in (&mut pos, &motion).join() {
-            pos.point += motion.velocity;
+            let mut screen_velocity = motion.velocity;
+            screen_velocity.y = screen_velocity.y * -1.0;
+            pos.point += screen_velocity;
             pos.rotation = motion.orientation;
         }
     }
 }
 
 pub struct CollisionSystem;
-
-// impl CollisionSystem {
-//      fn collides(pos: Position, positions: specs::ReadStorage<Position>) -> bool {
-//         return true;
-//     }
-// }
 
 impl<'a> specs::System<'a> for CollisionSystem {
     type SystemData = (
@@ -43,10 +36,7 @@ impl<'a> specs::System<'a> for CollisionSystem {
 
         for (collider, pos) in (&colliders, &positions).join() {
             let collision_obj = collision_world.get_mut(collider.handle).expect("yo no collision object?");
-
-            let new_position = na::Isometry2::new(na::Vector2::new(pos.point.x, pos.point.y), na::zero());
-            // collision_obj.position().clone();
-            // new_position.
+            let new_position = na::Isometry2::new(na::Vector2::new(pos.point.x, pos.point.y), pos.rotation);
             collision_obj.set_position(new_position);
         }
     }

@@ -1,10 +1,14 @@
+
 use ggez;
 use ggez::graphics;
 use ggez_goodies::scene;
+use ggez_goodies::tilemap::tiled as tiled;
+use ggez_goodies::tilemap::Map as Map;
 use log::*;
 use specs::{self, Join};
 use specs::world::Builder;
 use warmy;
+// use std::path;
 
 use ggez::nalgebra as na;
 use ncollide2d as nc;
@@ -17,12 +21,16 @@ use crate::scenes;
 use crate::systems::*;
 use crate::world::World;
 
-const MIN_VELOCITY: f32 = 0.5;
-const MAX_VELOCITY: f32 = -1.0;
+// use euclid;
+
+const MIN_VELOCITY: f32 = -0.5;
+const MAX_VELOCITY: f32 = 2.0;
+const TAU: f32 = std::f32::consts::PI * 2.0;
 
 pub struct LevelScene {
     done: bool,
     car: warmy::Res<resources::Image>,
+    map: Map,
     player_entity: specs::Entity,
     dispatcher: specs::Dispatcher<'static, 'static>,
 }
@@ -35,6 +43,18 @@ impl LevelScene {
             .get::<resources::Image>(&resources::Key::from_path("/images/cars-spritesheet.png"), ctx)
             .unwrap();
 
+        let mut load_image = |ctx: &mut ggez::Context, path: &str| -> graphics::Image {
+            let mut path_in_resources = String::from("/");
+            path_in_resources.push_str(path);
+            graphics::Image::new(ctx, path_in_resources).unwrap()
+        };
+
+        let tiled_map = tiled::parse_file(&std::path::Path::new("resources/map1.tmx")).unwrap();
+        let map = ggez_goodies::tilemap::Map::from_tiled(
+            ctx,
+            tiled_map,
+            &mut load_image
+        );
         let half_height = 76.0 / 2.0;
         let half_width = 76.0 / 4.0;
 
@@ -87,6 +107,7 @@ impl LevelScene {
         LevelScene {
             done,
             car,
+            map,
             player_entity,
             dispatcher,
         }
@@ -121,16 +142,18 @@ impl LevelScene {
                         let entity1: &specs::Entity = obj1.data();
                         if let Some(motion) = motions.get_mut(*entity1) {
                             motion.is_blocked = true;
-                            motion.velocity.x = 0.0;
-                            motion.velocity.y = motion.velocity.y * -1.0;
+                            motion.acceleration.y = motion.acceleration.y * -1.0;
+                            motion.update();
                         }
 
                         let obj2 = collide_world.collision_object(*handle2).expect("missin coll obj2");
                         let entity2: &specs::Entity = obj2.data();
                         if let Some(motion) = motions.get_mut(*entity2) {
                             motion.is_blocked = true;
-                            motion.velocity.x = 0.0;
-                            motion.velocity.y = motion.velocity.y * -1.0;
+                            // want to use reflect here.
+                            motion.acceleration.y = motion.acceleration.y * -1.0;
+                            motion.update();
+                            // motion.velocity = rotation.transform_vector(&player_motion.acceleration);
                         }
                     }
                 ncollide2d::pipeline::narrow_phase::ContactEvent::Stopped(handle1, handle2) =>
@@ -155,6 +178,10 @@ impl LevelScene {
     }
 }
 
+//  fn camera_draw(ctx: &mut ggez::Context, drawable: &graphics::Drawable, params: graphics::DrawParam) -> ggez::GameResult<()> {
+//     Ok(())
+// }
+
 impl scene::Scene<World, input::Event> for LevelScene {
     fn update(&mut self, gameworld: &mut World, _ctx: &mut ggez::Context) -> scenes::Switch {
         self.dispatcher.dispatch(&mut gameworld.specs_world.res);
@@ -167,9 +194,29 @@ impl scene::Scene<World, input::Event> for LevelScene {
         }
     }
 
-
     fn draw(&mut self, gameworld: &mut World, ctx: &mut ggez::Context) -> ggez::GameResult<()> {
         let pos = gameworld.specs_world.read_storage::<c::Position>();
+
+        let mut camera_offset = na::Point2::new(0.0, 0.0);
+
+        // todo: update this elsewhere
+        let player_point = pos.get(self.player_entity).unwrap().point;
+        // window is 800 x 600
+        if player_point.x > 400.0 {
+            if player_point.x < (self.map.width as f32 - 400.0) {
+                camera_offset.x = 400.0 - player_point.x;
+            } else {
+                camera_offset.x = self.map.width as f32 + 400.0;
+            }
+        }
+        if player_point.y > 300.0 {
+            camera_offset.y = 300.0 - player_point.y;
+        }
+        // map
+        graphics::draw(ctx, &self.map, graphics::DrawParam::default().dest(camera_offset)).unwrap();
+        // camera_draw(ctx, &self.map, graphics::DrawParam::default()).unwrap();
+
+        // sprites
         let sprite = gameworld.specs_world.read_storage::<c::Sprite>();
         let offset_x: f32 = 0.5;
         let offset_y: f32 = 0.5;
@@ -179,13 +226,21 @@ impl scene::Scene<World, input::Event> for LevelScene {
             params.rotation = p.rotation;
             params.scale = s.scale;
             params.offset = na::Point2::new(offset_x, offset_y).into();
-            params.dest = p.point.into();
+            params.dest = na::Point2::new(camera_offset.x + p.point.x, camera_offset.y + p.point.y).into();
             graphics::draw(
                 ctx,
                 &(self.car.borrow().0),
                 params,
             )?;
         }
+
+        // ui
+        let motions = gameworld.specs_world.read_storage::<c::Motion>();
+        let pm = motions.get(self.player_entity).expect("Player w/o motion?");
+        let text = graphics::Text::new(format!("o = {}, v = {}, x = {}, y = {}", pm.orientation, pm.acceleration.y, pm.velocity.x, pm.velocity.y));
+
+        graphics::draw(ctx, &text, graphics::DrawParam::default().dest(na::Point2::new(0.0, 0.0))).unwrap();
+
         Ok(())
     }
 
@@ -199,18 +254,26 @@ impl scene::Scene<World, input::Event> for LevelScene {
             self.done = true;
         }
         let mut motions = gameworld.specs_world.write_storage::<c::Motion>();
-        let player_motion = motions.get_mut(self.player_entity).expect("Player w/o motion?");
-        if !player_motion.is_blocked {
-            let accel = gameworld.input.get_axis(input::Axis::Vert) * -1.0;
-            let turn = gameworld.input.get_axis(input::Axis::Horz);
-            let y_vel = player_motion.velocity.y + accel;
-            let orientation = player_motion.orientation + turn;
-            player_motion.orientation = orientation.min(std::f32::consts::PI).max(std::f32::consts::PI * -1.0);
-            // let x_vel =
+        let motion = motions.get_mut(self.player_entity).expect("Player w/o motion?");
+        if !motion.is_blocked {
 
-            // backwards because only forward!
+            // update steering to set orientation from 0 to pi
+            let steering_input = gameworld.input.get_axis(input::Axis::Horz);
+            motion.orientation += steering_input / 4.0;
+            if motion.orientation < 0.0 {
+                motion.orientation += TAU;
+            } else if motion.orientation > TAU {
+                motion.orientation -= TAU;
+            }
 
-            player_motion.velocity = util::vec2(0.0, y_vel.min(MIN_VELOCITY).max(MAX_VELOCITY));
+            // this is y-velocity, not acceleration
+            let accel_input = gameworld.input.get_axis(input::Axis::Vert);
+            motion.acceleration.y += accel_input;
+            motion.acceleration.y = motion.acceleration.y.max(MIN_VELOCITY).min(MAX_VELOCITY);
+
         }
+        // calculate new velocity
+        motion.update();
+
     }
 }
